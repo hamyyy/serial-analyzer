@@ -1,0 +1,19 @@
+* {
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+input,
+textarea,
+.selectable,
+[selectable] {
+    user-select: text;
+
+    * {
+        user-select: inherit;
+    }
+}
+
+// *::-webkit-scrollbar {
+//     display: none;
+// }

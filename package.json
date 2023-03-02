@@ -1,0 +1,46 @@
+{
+  "name": "serial-analyzer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "bin": "dist/server.js",
+  "scripts": {
+    "app:dev": "vite --config vite.config.ts",
+    "app:build": "tsc && vite build",
+    "server:dev": "node scripts/watch-server.js",
+    "server:build": "node scripts/build-server.js",
+    "tauri:dev": "run-p server:dev app:dev",
+    "tauri:build": "tsc && run-s server:build app:build",
+    "tauri": "tauri",
+    "dev": "pnpm tauri dev",
+    "build": "pnpm tauri build"
+  },
+  "dependencies": {
+    "@panzoom/panzoom": "^4.5.1",
+    "@tauri-apps/api": "^1.2.0",
+    "node-sass": "^8.0.0",
+    "socket.io": "^4.6.1",
+    "socket.io-client": "^4.6.1",
+    "svrollbar": "^0.12.0",
+    "xel": "^0.19.0"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^2.0.0",
+    "@tauri-apps/cli": "^1.2.2",
+    "@tsconfig/svelte": "^3.0.0",
+    "@types/node": "^18.7.10",
+    "chokidar": "^3.5.3",
+    "esbuild": "^0.17.10",
+    "execa": "^7.0.0",
+    "npm-run-all": "^4.1.5",
+    "ora": "^6.1.2",
+    "pkg": "^5.8.0",
+    "sass": "^1.58.3",
+    "svelte": "^3.54.0",
+    "svelte-check": "^3.0.0",
+    "svelte-preprocess": "^5.0.1",
+    "tslib": "^2.4.1",
+    "typescript": "^4.6.4",
+    "vite": "^4.0.0"
+  }
+}
