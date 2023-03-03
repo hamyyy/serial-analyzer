@@ -1,9 +1,11 @@
-import { Server } from "socket.io";
+
+import { Server, Socket } from "socket.io";
 import { createServer } from "http";
 import { ClientToServerEvents, InterServerEvents, ServerToClientEvents, SocketData } from "./interfaces";
+import { SerialPort } from "serialport"
 
 const httpServer = createServer();
-const io = new Server<
+export const io = new Server<
   ClientToServerEvents,
   ServerToClientEvents,
   InterServerEvents,
@@ -13,24 +15,51 @@ const io = new Server<
 
 let connectCounter = 0;
 
-io.on("connection", (socket) => {
+export let socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData> = null;
 
+io.on("connection", (connection) => {
   connectCounter++;
-  socket.on("disconnect", () => {
-    connectCounter--;
+  console.log("Client connected: " + connectCounter);
 
-    if (connectCounter === 0) process.exit(0);
+  connection.on("disconnect", () => {
+    connectCounter--;
+    console.log("Client disconnected: " + connectCounter);
+
+    if (connectCounter === 0) {
+      setTimeout(() => {
+        if (connectCounter === 0) {
+          console.log("No clients connected, exiting");
+          process.exit(0);
+        }
+      }, 5000);
+    }
   });
 
   if (connectCounter > 1) {
-    socket.disconnect(true);
+    connection.disconnect(true);
     return;
   }
 
-  socket.on("greet", (msg, cb) => {
-    cb(`Hello, ${msg}, from NodeJS!`);
-    // io.emit("r/greet", `Hello, ${msg}, from NodeJS!`);
-  });
+  // connection.on("greet", (msg, cb) => {
+  //     cb(`Hello, ${msg}, from NodeJS!`);
+  //     // io.emit("r/greet", `Hello, ${msg}, from NodeJS!`);
+  // });
+
+  setupSerial(connection);
 });
 
+
+function setupSerial(socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) {
+  socket.on("listPorts", (callback) => {
+    SerialPort.list().then(ports => {
+      callback(ports);
+    });
+  });
+}
+
+
 io.listen(17655);
+
+////////////////////
+
+

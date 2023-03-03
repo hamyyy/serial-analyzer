@@ -1,15 +1,21 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import { Svrollbar } from 'svrollbar'
   import Connect from './components/Connect/Connect.svelte'
   import Plotter from './components/Plotter/Plotter.svelte'
   import Home from './Pages/Home.svelte'
-
+  import { connectWebSocket, disconnectWebSocket } from "./stores/socket.store";
+  
+  connectWebSocket();
   onMount(() => {
     document
       .querySelector('meta[name="xel-accent-color"]')
       ?.setAttribute('content', getComputedStyle(document.body).getPropertyValue('--primary'))
     document.querySelector('meta[name="xel-size"]')?.setAttribute('content', 'small')
+  })
+
+  onDestroy(() => {
+    disconnectWebSocket();
   })
 </script>
 

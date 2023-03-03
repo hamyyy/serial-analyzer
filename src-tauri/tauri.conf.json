@@ -1,7 +1,7 @@
 {
   "build": {
-    "beforeDevCommand": "pnpm tauri:dev",
-    "beforeBuildCommand": "pnpm tauri:build",
+    "beforeDevCommand": "npm run tauri:dev",
+    "beforeBuildCommand": "npm run tauri:build",
     "devPath": "http://localhost:1420",
     "distDir": "../dist",
     "withGlobalTauri": false
@@ -37,7 +37,10 @@
         "binaries/server"
       ],
       "identifier": "com.serial-analyzer.dev",
-      "targets": "all"
+      "targets": "all",
+      "resources": [
+        "prebuilds"
+      ]
     },
     "security": {
       "csp": null

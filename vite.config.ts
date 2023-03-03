@@ -20,6 +20,7 @@ export default defineConfig({
       },
     },
   },
+  mode: process.env.TAURI_DEBUG ? "development" : "production",
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   // prevent vite from obscuring rust errors

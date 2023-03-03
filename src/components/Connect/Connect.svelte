@@ -1,76 +1,37 @@
-<script lang="ts" context="module">
-  export type PortList = {
-    name: string
-    manufacturer: string
-    product: string
-  }
-</script>
-
 <script lang="ts">
-  import { onDestroy, onMount } from 'svelte'
-  import { listen } from '@tauri-apps/api/event'
-  import { invoke } from '@tauri-apps/api'
-  import type { Child } from '@tauri-apps/api/shell'
-  import { Command } from '@tauri-apps/api/shell'
-  import Button from '../UI/Button.svelte'
+  import { onDestroy, onMount } from "svelte";
+  import { PortInfo } from "../../../server/interfaces";
+  import { listPorts } from "../../stores/serial.store";
+  import { socket } from "../../stores/socket.store";
+  import Button from "../UI/Button.svelte";
 
-  let portList: PortList[] = []
-  let selectedPort: string = null
+  let portList: PortInfo[] = [];
+  let selectedPort: string = null;
 
-  let toggled = false
+  let toggled = false;
 
-  let inputValue = 'hey'
+  let inputValue = "hey";
 
-  function onPortSelect({ detail: data }: CustomEvent<{ oldValue: string; newValue: string }>) {
-    console.log(data)
-    selectedPort = data.newValue
+  function onPortSelect({
+    detail: data,
+  }: CustomEvent<{ oldValue: string; newValue: string }>) {
+    selectedPort = data.newValue;
   }
 
-  let child: Child = null
+  async function connect() {}
+  async function disconnect() {}
+  async function send() {}
 
-  async function connect() {
-    await invoke('connect_to_port', { portname: selectedPort, baudrate: 115200 })
-    // const command = new Command(
-    //   './ss.exe -com:3 -baud:115200 -autoconnect:NONE -databits:8 -stopbits:1 -parity:NONE'
-    // )
-    // command.on('close', (data) => {
-    //   console.log(`command finished with code ${data.code} and signal ${data.signal}`)
-    // })
-    // command.on('error', (error) => console.error(`command error: "${error}"`))
-    // command.stdout.on('data', (line) => console.log(`command stdout: "${line}"`))
-    // command.stderr.on('data', (line) => console.log(`command stderr: "${line}"`))
-    // child = await command.spawn()
-    // console.log('pid:', child.pid)
-  }
-  async function disconnect() {
-    await child?.kill()
-    // await Tauri.invoke('disconnect')
-  }
-  async function send() {
-    // await child.write('console.log("this is from node, lol")\n')
-
-    invoke('serial_send', { message: "ello gov\n" })
-
-    // await Tauri.invoke('send', { data: inputValue })
-  }
-
-  let unsub, unsub2
   onMount(async () => {
-    toggled = true
+    toggled = true;
+    socket.on("serial", (data) => {
+      console.log(data);
+    });
+    
+    portList = await listPorts();
+  });
 
-    unsub = await listen('port_list', ({ payload }) => {
-      portList = payload as PortList[]
-    })
-
-    unsub2 = await listen('serial_data', ({ payload }) => {
-      console.log(payload)
-    })
-  })
-
-  onDestroy(() => {
-    unsub()
-    unsub2()
-  })
+  onDestroy(() => {});
 </script>
 
 <main>
@@ -79,7 +40,10 @@
   <x-tabs>
     <x-tab selected on:click={(e) => console.log(e)} on:keydown>
       <x-label>Item one</x-label>
-      <Button color="transparent" style="padding-inline: 0px; margin-left: 1em;">
+      <Button
+        color="transparent"
+        style="padding-inline: 0px; margin-left: 1em;"
+      >
         <x-icon href="#add" />
       </Button>
     </x-tab>
@@ -103,9 +67,11 @@
 
       <hr />
 
-      {#each portList as { name, product }}
-        <x-menuitem value={name}>
-          <x-label>{product || name}</x-label>
+      {#each portList as port}
+        <x-menuitem value={port.path}>
+          <x-label
+            >{"friendlyName" in port ? port.friendlyName : port.path}</x-label
+          >
         </x-menuitem>
       {/each}
     </x-menu>
@@ -121,7 +87,7 @@
 </main>
 
 <style lang="scss">
-  x-icon[href='#add'] {
+  x-icon[href="#add"] {
     rotate: 45deg;
     opacity: 0.5;
     border-radius: 50%;

@@ -1,13 +1,20 @@
 import { io, Socket } from "socket.io-client";
-import { ClientToServerEvents, ServerToClientEvents } from "../../server/interfaces";
+import type { ClientToServerEvents, ServerToClientEvents } from "../../server/interfaces";
 
-const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io("http://localhost:17655");
-export { sio as socket };
 
-sio.on("connect", () => {
-    console.log("connected");
-});
+export let socket: Socket<ServerToClientEvents, ClientToServerEvents> = null;
 
-sio.on("disconnect", () => {
-    console.log("disconnected");
-});
+export function connectWebSocket() {   
+    socket = io("http://localhost:17655");
+    socket.on("connect", () => {
+        console.info("Connected to server");
+    });
+    
+    socket.on("disconnect", () => {
+        console.warn("Disconnected from server");
+    });
+}
+
+export function disconnectWebSocket() {
+    socket.disconnect();
+}
