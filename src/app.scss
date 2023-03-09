@@ -1,3 +1,40 @@
+// @import "carbon-components-svelte/css/white.css";
+// @import "carbon-components-svelte/css/g10.css";
+// @import "carbon-components-svelte/css/g80.css";
+// @import "carbon-components-svelte/css/g90.css";
+@import "carbon-components-svelte/css/g100.css";
+// @import "carbon-components-svelte/css/all.css";
+
+
+$button-radius: 5px !default;
+
+button {
+    border-radius: $button-radius !important;
+    padding-block: calc(.375rem - 3px) calc(.375rem - 3px) !important;
+    padding-inline: 36px !important;
+    justify-content: center !important;
+}
+
+div.bx--btn-set {
+
+    button {
+        border-radius: unset !important;
+    }
+
+    button {
+        &:first-child {
+            border-top-left-radius: $button-radius !important;
+            border-bottom-left-radius: $button-radius !important;
+        }
+
+        &:last-child {
+            border-top-right-radius: $button-radius !important;
+            border-bottom-right-radius: $button-radius !important;
+        }
+    }
+}
+
+
 * {
     user-select: none;
     -webkit-user-drag: none;

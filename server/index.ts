@@ -2,7 +2,7 @@
 import { Server, Socket } from "socket.io";
 import { createServer } from "http";
 import { ClientToServerEvents, InterServerEvents, ServerToClientEvents, SocketData } from "./interfaces";
-import { SerialPort } from "serialport"
+import { ReadlineParser, SerialPort } from "serialport"
 
 const httpServer = createServer();
 export const io = new Server<
@@ -15,17 +15,23 @@ export const io = new Server<
 
 let connectCounter = 0;
 
-export let socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData> = null;
+export let socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
 
+let connectedPort: SerialPort | null = null;
+let parser: ReadlineParser | null = null;
+
+const timeoutID = setTimeout(() => process.exit(0), 10000);
 io.on("connection", (connection) => {
   connectCounter++;
+  clearTimeout(timeoutID);
   console.log("Client connected: " + connectCounter);
 
   connection.on("disconnect", () => {
     connectCounter--;
+    connectedPort?.close();
     console.log("Client disconnected: " + connectCounter);
 
-    if (connectCounter === 0) {
+    if (connectCounter === 0 && !process.env.TAURI_DEBUG) {
       setTimeout(() => {
         if (connectCounter === 0) {
           console.log("No clients connected, exiting");
@@ -54,6 +60,55 @@ function setupSerial(socket: Socket<ClientToServerEvents, ServerToClientEvents, 
     SerialPort.list().then(ports => {
       callback(ports);
     });
+  });
+
+  socket.on("serialConnect", async (port, baud, callback) => {
+    if (connectedPort && connectedPort.isOpen) await new Promise<void>((resolve: any) => connectedPort?.close(resolve));
+
+    try {
+      connectedPort = new SerialPort({
+        path: port,
+        baudRate: baud
+      });
+    } catch (e) {
+      callback(false, e.stack ?? e.message);
+      console.error(e);
+      return;
+    }
+
+    parser = connectedPort.pipe(new ReadlineParser({ delimiter: "\n" }));
+
+    connectedPort.on("open", () => {
+      callback(true);
+      socket.emit("serialConnected", port, baud);
+      console.log("Connected to " + port + " at " + baud);
+    });
+    connectedPort.on("error", (e) => {
+      callback(false, e.stack ?? e.message);
+    });
+    connectedPort.on("close", () => {
+      socket.emit("serialClosed");
+      console.log("Disconnected from serial port");
+    });
+
+
+    parser.on("data", (data) => {
+      socket.emit("serialData", data.toString());
+    });
+  });
+
+  socket.on("serialDisconnect", (callback) => {
+    connectedPort?.close((err) => {    
+      if (err) {
+        callback(false, err.stack ?? err.message);
+      } else {
+        callback(true);
+        connectedPort = null;
+      }
+    });
+    if (!connectedPort) {
+      callback(true);
+    }
   });
 }
 

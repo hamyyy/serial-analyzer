@@ -1,57 +1,108 @@
 <script lang="ts">
-  import type { Line } from './Plotter'
+  import {
+    calculteVisiblePoints,
+    calculteVisiblePointsLoopAll,
+    Line,
+  } from "./Plotter";
 
-  import { onDestroy, onMount } from 'svelte'
-  import panzoom, { PanzoomObject, PanzoomOptions } from '@panzoom/panzoom'
-  import { colorPalette } from '../../util/color'
+  import { onDestroy, onMount } from "svelte";
+  import panzoom, { PanzoomObject, PanzoomOptions } from "@panzoom/panzoom";
+  import { colorPalette } from "../../util/color";
 
-  export let lines: Line[] = []
-  export let width: number | string = '100%'
-  export let height: number | string = '100%'
-  export let style = ''
-  export let resizeable: 'vertical' | 'horizontal' | 'both' | boolean = false
+  export let lines: Line[] = [];
+  export let width: number | string = "100%";
+  export let height: number | string = "100%";
+  export let style = "";
+  export let resizeable: "vertical" | "horizontal" | "both" | boolean = false;
+  export let autoScroll = true;
 
-  let currentWidth: number = 0
-  let currentHeight: number = 0
+  let currentWidth: number = 0;
+  let currentHeight: number = 0;
 
-  let smallGridMultiplier = 0.1
-  let gridScale = 100
-  let gridOpacity = 0.5
-  let scale = 1
+  let smallGridMultiplier = 0.1;
+  let gridScale = 100;
+  let gridOpacity = 0.5;
+  let scale = 1;
 
   $: {
-    gridScale = Math.pow(10, -Math.floor(Math.log10(scale))) * 100
+    gridScale = Math.pow(10, -Math.floor(Math.log10(scale))) * 100;
   }
 
-  let pan = { x: 0, y: 0 }
-  let isPanning = false
-  let resizeObserver: ResizeObserver
+  $: {
+    lines;
+
+    if (autoScroll) {
+      // pan = { x: 0, y: 0 };
+      if (lines.length > 0) {
+        const lastLine = lines[lines.length - 1];
+        const lastPoint = lastLine.points[lastLine.points.length - 1];
+        let x = -lastPoint.x + currentWidth / scale;
+        canvas.pan(x, pan.y);
+        pan = canvas.getPan();
+        scale = canvas.getScale();
+      }
+    }
+    updateLines();
+  }
+
+  let pan = { x: 0, y: 0 };
+  let previousPan = { x: 0, y: 0 };
+  let isPanning = false;
+  let resizeObserver: ResizeObserver;
 
   const watchResize = (dom_elem: any, callback: any) => {
-    const r = new ResizeObserver(() => callback())
-    r.observe(dom_elem)
-    return r
+    const r = new ResizeObserver(() => callback());
+    r.observe(dom_elem);
+    return r;
+  };
+
+  export function updateLines() {
+    for (const line of lines) {
+      calculteVisiblePoints(
+        line,
+        previousPan,
+        pan,
+        scale,
+        currentWidth,
+        currentHeight
+      );
+
+      // console.log(line.visibleMinXIndex, line.visibleMaxXIndex, line.visiblePoints?.length);
+    }
   }
 
-  let panZoomGroup: SVGGElement
-  let containerElmt: HTMLDivElement
-  let canvas: PanzoomObject
-  let isResizing = false
+  export function updateLinesLoopAll() {
+    for (const line of lines) {
+      const minX = -pan.x - currentWidth / scale;
+      const maxX = -pan.x + (currentWidth * 2) / scale;
+      calculteVisiblePointsLoopAll(line, minX, maxX);
+    }
+  }
+
+  let panZoomGroup: SVGGElement;
+  let containerElmt: HTMLDivElement;
+  let canvas: PanzoomObject;
+  let isResizing = false;
 
   const onMouseWheel = (e: WheelEvent) => {
-    canvas.setOptions({ ...canvas.getOptions(), disableZoom: isResizing })
-    canvas.zoomWithWheel(e)
+    canvas.setOptions({ ...canvas.getOptions(), disableZoom: isResizing });
+    canvas.zoomWithWheel(e);
 
-    scale = canvas.getScale()
-    pan = canvas.getPan()
+    scale = canvas.getScale();
+    previousPan = pan;
+    pan = canvas.getPan();
 
-    e.stopPropagation()
-    e.preventDefault()
-  }
+    updateLines();
+
+    e.stopPropagation();
+    e.preventDefault();
+  };
+
+  const onPan = (e: MouseEvent) => {};
 
   onMount(() => {
-    currentWidth = containerElmt.clientWidth
-    currentHeight = containerElmt.clientHeight
+    currentWidth = containerElmt.clientWidth;
+    currentHeight = containerElmt.clientHeight;
 
     const options: PanzoomOptions = {
       startX: 0,
@@ -65,8 +116,8 @@
       canvas: true,
 
       handleStartEvent: (e: Event) => {
-        isPanning = true
-        e.stopPropagation()
+        isPanning = true;
+        e.stopPropagation();
         // canvas.setOptions({
         //   ...canvas.getOptions(),
         //   // disablePan: isResizing,
@@ -74,20 +125,22 @@
         // })
       },
       //   isSVG: true
-    }
+    };
 
-    canvas = panzoom(panZoomGroup, options)
+    canvas = panzoom(panZoomGroup, options);
     setTimeout(() => {
-      pan = canvas.getPan()
-      scale = canvas.getScale()
-    })
+      previousPan = pan;
+      pan = canvas.getPan();
+      scale = canvas.getScale();
+      updateLinesLoopAll();
+    });
 
     resizeObserver = watchResize(containerElmt, () => {
-      isResizing = true
-      let oldWidth = currentWidth
-      let oldHeight = currentHeight
-      currentWidth = containerElmt.clientWidth
-      currentHeight = containerElmt.clientHeight
+      isResizing = true;
+      let oldWidth = currentWidth;
+      let oldHeight = currentHeight;
+      currentWidth = containerElmt.clientWidth;
+      currentHeight = containerElmt.clientHeight;
       const {
         x,
         y,
@@ -95,32 +148,39 @@
       } = canvas.pan(
         pan.x + (currentWidth - oldWidth) / scale / 2,
         pan.y + (currentHeight - oldHeight) / scale / 2
-      )
-      pan = { x, y }
-      scale = s
-    })
-  })
+      );
+      pan = { x, y };
+      previousPan = { x, y };
+      scale = s;
+    });
+  });
 
   onDestroy(() => {
-    resizeObserver.disconnect()
-  })
+    resizeObserver.disconnect();
+  });
 </script>
 
 <svelte:window
-  on:mousemove={() => {
+  on:mousemove={(e) => {
     if (isPanning) {
-      pan = canvas.getPan()
+      pan = canvas.getPan();
+      onPan(e);
+      autoScroll = false;
     }
   }}
   on:mouseup={() => {
-    isPanning = false
-    isResizing = false
+    if (isPanning) {
+      updateLines();
+    }
+    isPanning = false;
+    isResizing = false;
   }}
 />
 
 <container
-  style="width: {width}{typeof width == 'number' ? 'px' : ''}; height: {height}{typeof height ==
-  'number'
+  style="width: {width}{typeof width == 'number'
+    ? 'px'
+    : ''}; height: {height}{typeof height == 'number'
     ? 'px'
     : ''}; resize: {resizeable === true ? 'both' : resizeable}; {style}"
   bind:this={containerElmt}
@@ -140,14 +200,20 @@
         patternUnits="userSpaceOnUse"
       >
         <path
-          d="M {gridScale * smallGridMultiplier} 0 L 0 0 0 {gridScale * smallGridMultiplier}"
+          d="M {gridScale * smallGridMultiplier} 0 L 0 0 0 {gridScale *
+            smallGridMultiplier}"
           fill="none"
           stroke="gray"
           stroke-width={0.5 / scale}
         />
       </pattern>
 
-      <pattern id="grid" width={gridScale} height={gridScale} patternUnits="userSpaceOnUse">
+      <pattern
+        id="grid"
+        width={gridScale}
+        height={gridScale}
+        patternUnits="userSpaceOnUse"
+      >
         <rect
           width={gridScale}
           height={gridScale}
@@ -193,11 +259,11 @@
       <g>
         {#each lines as line, i}
           <path
-            d={line.points
-              .map((point, i) => {
-                return `${i === 0 ? 'M' : 'L'} ${point.x} ${point.y}`
+            d={line.visiblePoints
+              ?.map((point, i) => {
+                return `${i === 0 ? "M" : "L"} ${point.x} ${point.y}`;
               })
-              .join(' ')}
+              .join(" ")}
             fill="none"
             stroke={line.color ?? colorPalette[(i * 130) % colorPalette.length]}
             stroke-width="1"

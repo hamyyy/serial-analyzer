@@ -22,6 +22,12 @@
             "sidecar": true
           }
         ]
+      },
+      "dialog": {
+        "all": true
+      },
+      "fs": {
+        "all": true
       }
     },
     "bundle": {
@@ -53,7 +59,7 @@
         "fullscreen": false,
         "resizable": true,
         "title": "Serial Analyzer",
-        "width": 1280, 
+        "width": 1280,
         "height": 720
       }
     ]
